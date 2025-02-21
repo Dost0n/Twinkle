@@ -30,6 +30,8 @@ class User(BaseModel):
     comments = relationship("Comment", back_populates="user")
     postlikes = relationship("PostLike", back_populates="user")
     commentlikes = relationship("CommentLike", back_populates="user")
+    postdislikes = relationship("PostDislike", back_populates="user")
+    commentdislikes = relationship("CommentDislike", back_populates="user")
 
 
 class Confirmation(BaseModel):
@@ -51,6 +53,7 @@ class Post(BaseModel):
     file_type = Column(String)  
     comments = relationship("Comment", back_populates="post")
     postlikes = relationship("PostLike", back_populates="post")
+    postdislikes = relationship("PostDislike", back_populates="post")
         
 
 class Comment(BaseModel):
@@ -61,6 +64,7 @@ class Comment(BaseModel):
     post = relationship("Post", back_populates="comments")
     comment = Column(String)
     commentlikes = relationship("CommentLike", back_populates="comment")
+    commentdislikes = relationship("CommentDislike", back_populates="comment")
 
 
 class PostLike(BaseModel):
@@ -71,9 +75,25 @@ class PostLike(BaseModel):
     post = relationship("Post", back_populates="postlikes")
 
 
+class PostDislike(BaseModel):
+    __tablename__ = "postdislikes"
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship("User", back_populates="postdislikes")
+    post_id = Column(Integer, ForeignKey('posts.id'))
+    post = relationship("Post", back_populates="postdislikes")
+
+
 class CommentLike(BaseModel):
     __tablename__ = "commentlikes"
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User", back_populates="commentlikes")
     comment_id = Column(Integer, ForeignKey('comments.id'))
     comment = relationship("Comment", back_populates="commentlikes")
+
+
+class CommentDislike(BaseModel):
+    __tablename__ = "commentdislikes"
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship("User", back_populates="commentdislikes")
+    comment_id = Column(Integer, ForeignKey('comments.id'))
+    comment = relationship("Comment", back_populates="commentdislikes")

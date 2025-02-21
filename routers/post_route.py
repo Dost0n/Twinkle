@@ -2,17 +2,17 @@ from fastapi import APIRouter, Query, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 from db.session import get_db
-from db.models import Post, PostLike, Comment
+from db.models import Post, PostLike, Comment, PostDislike, CommentLike, CommentDislike
 from schemas.users import UserShow
 from core.security import get_current_user
 import os
-from schemas.posts import PostCreateSchema, PostShowSchema
-from schemas.postlike import PostLikeShowSchema
-from schemas.comment import CommentCreateSchema, CommentShowSchema
+from schemas.posts import PostShowSchema, PostLikeShowSchema, PostDislikeShowSchema, CommentCreateSchema, CommentShowSchema, CommentLikeShowSchema, CommentDislikeShowSchema
 from fastapi.responses import JSONResponse, FileResponse
 from typing import List, Optional
 
+
 router = APIRouter()
+
 
 def save_uploaded_file(file: UploadFile):
     file_path = os.path.join("uploaded_files", file.filename)
@@ -86,7 +86,7 @@ def update_post(post_id:int, file: UploadFile = File(...), caption: str = Form(.
     return db_post
 
 
-@router.delete("{post_id}/delete")
+@router.delete("/{post_id}/delete")
 def delete_post(post_id:int, db: Session = Depends(get_db)):
     db_post = db.query(Post).filter(Post.id == post_id).first()
     if not db_post:
@@ -97,7 +97,7 @@ def delete_post(post_id:int, db: Session = Depends(get_db)):
     return {"message": "Fayl muvaffaqiyatli o'chirildi!"}
 
 
-@router.post("{post_id}/postlike")
+@router.post("/{post_id}/postlike")
 async def create_post_like(post_id:int, db: Session = Depends(get_db)):
     db_post = db.query(Post).filter(Post.id == post_id).first()
     if db_post is None:
@@ -114,7 +114,42 @@ async def create_post_like(post_id:int, db: Session = Depends(get_db)):
     return {"message": "Post ga like bosildi!"}
 
 
-@router.post("{post_id}/comment", response_model=CommentShowSchema)
+@router.get("/{post_id}/likes", response_model=List[PostLikeShowSchema])
+def get_post_likes(post_id: int, db: Session = Depends(get_db)):
+    db_post = db.query(Post).filter(Post.id == post_id).first()
+    if db_post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    likes = db.query(PostLike).filter(PostLike.post_id == post_id)
+    return likes
+
+
+@router.post("/{post_id}/postdislike")
+async def create_post_dislike(post_id:int, db: Session = Depends(get_db)):
+    db_post = db.query(Post).filter(Post.id == post_id).first()
+    if db_post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    db_post_dislike = db.query(PostDislike).filter(PostDislike.user_id == post_id).filter(PostDislike.post_id == post_id).first()
+    if db_post_dislike:
+        db.delete(db_post_dislike)
+        db.commit()
+        return {"message": "Postdan dislike o'chirildi!"}
+    new_post_dislike = PostDislike(user_id=1, post_id=post_id)
+    db.add(new_post_dislike)
+    db.commit() 
+    db.refresh(new_post_dislike)
+    return {"message": "Post ga dislike bosildi!"}
+
+
+@router.get("/{post_id}/dislikes", response_model=List[PostDislikeShowSchema])
+def get_post_dislikes(post_id: int, db: Session = Depends(get_db)):
+    db_post = db.query(Post).filter(Post.id == post_id).first()
+    if db_post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    dislikes = db.query(PostDislike).filter(PostDislike.post_id == post_id)
+    return dislikes
+
+
+@router.post("/{post_id}/comment", response_model=CommentShowSchema)
 async def create_post_comment(post_id:int, comment=CommentCreateSchema, db: Session = Depends(get_db)):
     db_post = db.query(Post).filter(Post.id == post_id).first()
     if db_post is None:
@@ -135,10 +170,53 @@ def get_post_comments(post_id: int, db: Session = Depends(get_db)):
     return comments
 
 
-@router.get("/{post_id}/likes", response_model=List[PostLikeShowSchema])
-def get_post_likes(post_id: int, db: Session = Depends(get_db)):
-    db_post = db.query(Post).filter(Post.id == post_id).first()
-    if db_post is None:
-        raise HTTPException(status_code=404, detail="Post not found")
-    likes = db.query(PostLike).filter(PostLike.post_id == post_id)
+@router.post("/comment/{comment_id}/like")
+async def create_comment_like(comment_id:int, db: Session = Depends(get_db)):
+    db_comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    if db_comment is None:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    db_comment_like = db.query(CommentLike).filter(CommentLike.user_id == comment_id).filter(CommentLike.id == comment_id).first()
+    if db_comment_like:
+        db.delete(db_comment_like)
+        db.commit()
+        return {"message": "Commentdan like o'chirildi!"}
+    new_comment_like = CommentLike(user_id=1, comment_id=comment_id)
+    db.add(new_comment_like)
+    db.commit() 
+    db.refresh(new_comment_like)
+    return {"message": "Commentga like bosildi!"}
+
+
+@router.post("/comment/{comment_id}/dislike")
+async def create_comment_dislike(comment_id:int, db: Session = Depends(get_db)):
+    db_comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    if db_comment is None:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    db_comment_dislike = db.query(CommentDislike).filter(CommentDislike.user_id == comment_id).filter(CommentDislike.id == comment_id).first()
+    if db_comment_dislike:
+        db.delete(db_comment_dislike)
+        db.commit()
+        return {"message": "Commentdan dislike o'chirildi!"}
+    new_comment_dislike = CommentDislike(user_id=1, comment_id=comment_id)
+    db.add(new_comment_dislike)
+    db.commit() 
+    db.refresh(new_comment_dislike)
+    return {"message": "Commentga dislike bosildi!"}
+
+
+@router.get("/{comment_id}/likes", response_model=List[CommentLikeShowSchema])
+def get_comment_likes(comment_id: int, db: Session = Depends(get_db)):
+    db_comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    if db_comment is None:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    likes = db.query(CommentLike).filter(CommentLike.comment_id == comment_id)
     return likes
+
+
+@router.get("/{comment_id}/dislikes", response_model=List[CommentDislikeShowSchema])
+def get_comment_dislikes(comment_id: int, db: Session = Depends(get_db)):
+    db_comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    if db_comment is None:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    dislikes = db.query(CommentDislike).filter(CommentDislike.comment_id == comment_id)
+    return dislikes
