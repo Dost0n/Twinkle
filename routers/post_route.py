@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException
 from db.session import get_db
 from db.models import Post, PostLike, Comment, PostDislike, CommentLike, CommentDislike
 from schemas.users import UserShow
-from core.security import get_current_user
+from core.security import get_current_user, get_current_admin_user
 import os
 from schemas.posts import PostShowSchema, PostLikeShowSchema, PostDislikeShowSchema, CommentCreateSchema, CommentShowSchema, CommentLikeShowSchema, CommentDislikeShowSchema
 from fastapi.responses import JSONResponse, FileResponse
@@ -38,7 +38,7 @@ def delete_file_from_disk(file_path: str):
 
 
 @router.post("/create", response_model=PostShowSchema)
-async def create_post(file: UploadFile = File(...), caption: str = Form(...), db: Session = Depends(get_db)):
+async def create_post(file: UploadFile = File(...), caption: str = Form(...), db: Session = Depends(get_db), current_user: UserShow = Depends(get_current_user)):
     saved_file_path = save_uploaded_file(file)
     file_type = get_file_type(file.filename)
     new_post = Post(user_id=1, caption=caption, file_url=saved_file_path, file_type=file_type)
@@ -49,7 +49,7 @@ async def create_post(file: UploadFile = File(...), caption: str = Form(...), db
 
 
 @router.get("/all", response_model=List[PostShowSchema])
-def get_posts(db: Session = Depends(get_db), skip: int = Query(0, ge=0), limit: int = Query(10, le=100)):
+def get_posts(db: Session = Depends(get_db), skip: int = Query(0, ge=0), limit: int = Query(10, le=100), current_user: UserShow = Depends(get_current_admin_user)):
     posts = db.query(Post).all()[skip: skip + limit]
     total_posts = len(db.query(Post).all())
     if skip >= total_posts:
@@ -58,7 +58,7 @@ def get_posts(db: Session = Depends(get_db), skip: int = Query(0, ge=0), limit: 
 
 
 @router.get("/{post_id}/get", response_model=PostShowSchema)
-def get_post(post_id:int, db: Session = Depends(get_db)):
+def get_post(post_id:int, db: Session = Depends(get_db), current_user: UserShow = Depends(get_current_user)):
     db_post = db.query(Post).filter(Post.id == post_id).first()
     if not db_post:
         raise HTTPException(status_code=400, detail="This post not found")
@@ -87,7 +87,7 @@ def update_post(post_id:int, file: UploadFile = File(...), caption: str = Form(.
 
 
 @router.delete("/{post_id}/delete")
-def delete_post(post_id:int, db: Session = Depends(get_db)):
+def delete_post(post_id:int, db: Session = Depends(get_db), current_user: UserShow = Depends(get_current_user)):
     db_post = db.query(Post).filter(Post.id == post_id).first()
     if not db_post:
         raise HTTPException(status_code=400, detail="This post not found")

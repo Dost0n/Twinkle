@@ -98,7 +98,7 @@ def confirmation_user(confirmation: UserConfirmation, db: Session = Depends(get_
 
 
 @router.get("/all")
-def get_users(db: Session = Depends(get_db), skip: int = Query(0, ge=0), limit: int = Query(10, le=100)):
+def get_users(db: Session = Depends(get_db), skip: int = Query(0, ge=0), limit: int = Query(10, le=100), current_user: UserShow = Depends(get_current_user)):
     users = db.query(User).all()[skip: skip + limit]
     total_users = len(db.query(User).all())
     if skip >= total_users:
