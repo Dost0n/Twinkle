@@ -52,17 +52,25 @@ class Confirmation(BaseModel):
     is_isconfirmed = Column(Boolean, default=False)
 
 
+class Playlist(BaseModel):
+    __tablename__ = "playlists"
+    name = Column(String)
+    posts = relationship("Post", back_populates="playlist")
+
+
 class Post(BaseModel):
     __tablename__ = "posts"
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User", back_populates="posts")
     file_url = Column(String)
     caption = Column(String)
-    file_type = Column(String)  
+    file_type = Column(String)
+    playlist_id = Column(Integer, ForeignKey('playlists.id'))
+    playlist = relationship("Playlist", back_populates="posts")
     comments = relationship("Comment", back_populates="post")
     postlikes = relationship("PostLike", back_populates="post")
     postdislikes = relationship("PostDislike", back_populates="post")
-        
+
 
 class Comment(BaseModel):
     __tablename__ = "comments"

@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException
 from db.session import get_db
 from typing import List
 from db.models import User, Confirmation, Profile
-from schemas.users import UserShow, UserCreate, UserUpdate, UserUpdatePassword, AuthType, AuthStatus, AuthRole, UserConfirmation
+from schemas.users import UserShow, UserCreate, UserUpdate, UserUpdatePassword, AuthType, AuthStatus, AuthRole, UserConfirmation, ProfileShow, ProfileUpdate
 from db.hashing import Hasher
 from core.security import get_current_user, get_current_admin_user
 from core.config import settings
@@ -148,3 +148,23 @@ def update_user(user_id:int, password: UserUpdatePassword, db: Session = Depends
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+@router.get("/profile", response_model=ProfileShow)
+def get_profile(db: Session = Depends(get_db), current_user: UserShow = Depends(get_current_user)):
+    db_profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+    if not db_profile:
+        raise HTTPException(status_code=400, detail="Profile not found!")
+    return db_profile
+
+
+@router.patch("/profile/update", response_model=ProfileShow)
+def update_profile(profile: ProfileUpdate, db: Session = Depends(get_db), current_user: UserShow = Depends(get_current_user)):
+    db_profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+    if not db_profile:
+        raise HTTPException(status_code=400, detail="Profile not found!")
+    if profile.bio:
+        db_profile.bio = profile.bio
+    db.commit()
+    db.refresh(db_profile)
+    return db_profile

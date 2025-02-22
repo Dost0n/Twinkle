@@ -58,3 +58,13 @@ class LoginSchema(BaseModel):
 class Token(BaseModel):
     access_token : str
     token_type   : str
+
+
+class ProfileShow(BaseModel):
+    id    :int
+    owner : UserShow
+    bio   : str
+
+
+class ProfileUpdate(BaseModel):
+    bio   : str
