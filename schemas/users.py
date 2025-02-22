@@ -15,10 +15,11 @@ class AuthStatus(str, Enum):
 
 
 class AuthRole(str, Enum):
-    user = 'user'
-    manager = 'manager'
     admin = 'admin'
-
+    creator = 'creator'
+    advertiser = 'advertiser'
+    user = 'user'
+    
 
 class UserCreate(BaseModel):
     user_input :str

@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 from db.session import get_db
 from typing import List
-from db.models import User, Confirmation
-from schemas.users import UserShow, UserCreate, UserUpdate,UserUpdatePassword, AuthType, AuthStatus, AuthRole, UserConfirmation
+from db.models import User, Confirmation, Profile
+from schemas.users import UserShow, UserCreate, UserUpdate, UserUpdatePassword, AuthType, AuthStatus, AuthRole, UserConfirmation
 from db.hashing import Hasher
 from core.security import get_current_user, get_current_admin_user
 from core.config import settings
@@ -12,6 +12,7 @@ import random
 import uuid
 from datetime import datetime, timedelta
 from core.security import create_access_token
+
 
 router = APIRouter()
 
@@ -87,6 +88,10 @@ def confirmation_user(confirmation: UserConfirmation, db: Session = Depends(get_
             current_user.auth_status = AuthStatus.code_verified
             db.commit()
             db.refresh(current_user)
+            new_profile = Profile(user_id = current_user.i)
+            db.add(new_profile)
+            db.commit()
+            db.refresh(new_profile)
             access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
             if current_user.auth_type == AuthType.via_email:
                 access_token = create_access_token(data={"sub": current_user.email}, expires_delta=access_token_expires)

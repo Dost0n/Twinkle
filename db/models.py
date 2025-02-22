@@ -32,6 +32,14 @@ class User(BaseModel):
     commentlikes = relationship("CommentLike", back_populates="user")
     postdislikes = relationship("PostDislike", back_populates="user")
     commentdislikes = relationship("CommentDislike", back_populates="user")
+    profile = relationship("Profile", uselist=False, back_populates="owner")
+
+
+class Profile(BaseModel):
+    __tablename__ = "profiles"
+    user_id = Column(Integer, ForeignKey('users.id'))
+    owner = relationship("User", back_populates="profile")
+    bio = Column(String)
 
 
 class Confirmation(BaseModel):
